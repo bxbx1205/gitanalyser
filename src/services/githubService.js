@@ -4,7 +4,6 @@ export async function fetchUserData(username) {
   try {
     const userInfo = await fetch(`${GITHUB_API_BASE}/${username}`).then((res) => res.json());
 
-    // 💥 Handle invalid usernames gracefully
     if (!userInfo.login) {
       throw new Error("User not found");
     }
@@ -31,7 +30,6 @@ export async function fetchUserData(username) {
       activityPattern[year] = (activityPattern[year] || 0) + 1;
     });
 
-    // Sort repos by stargazers and ignore forks
     topRepos = [...repos]
       .filter(r => !r.fork)
       .sort((a, b) => b.stargazers_count - a.stargazers_count)
