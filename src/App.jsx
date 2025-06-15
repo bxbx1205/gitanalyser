@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Search, User, GitBranch, Star, Eye, Users, Calendar, Code, Activity, Zap, Trophy, TrendingUp } from 'lucide-react';
+import { Search, GitBranch, Star, Eye, Users, Calendar, Code, Activity, Trophy, TrendingUp } from 'lucide-react';
 
-// रंग palette - colors ke liye yaha se pick karte hai
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0', '#ffb347', '#87ceeb'];
 
 const GitAnalyzer = () => {
@@ -15,19 +14,15 @@ const GitAnalyzer = () => {
   const [compareMode, setCompareMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // GitHub API se data laane ka function - यह काम करता है 
   const fetchGitHubData = async (username) => {
     try {
-      // पहले user ki basic info लेते हैं
       const userResponse = await fetch(`https://api.github.com/users/${username}`);
-      if (!userResponse.ok) throw new Error('User nahi mila bhai');
+      if (!userResponse.ok) throw new Error('User not found');
       const userInfo = await userResponse.json();
 
-      // अब repos की list लेते हैं 
       const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
       const repos = await reposResponse.json();
 
-      // Language stats निकालते हैं - थोड़ा complex logic है यह
       const languageStats = {};
       let totalStars = 0;
       let totalForks = 0;
@@ -42,12 +37,10 @@ const GitAnalyzer = () => {
         totalWatchers += repo.watchers_count || 0;
       });
 
-      // Top repositories - stars ke base pe sort karte hai
       const topRepos = repos
         .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
         .slice(0, 10);
 
-      // Activity pattern - created date se समझते हैं
       const activityPattern = {};
       repos.forEach(repo => {
         const year = new Date(repo.created_at).getFullYear();
@@ -68,23 +61,19 @@ const GitAnalyzer = () => {
         }
       };
     } catch (err) {
-      throw new Error(`Error fetching data: ${err.message}`);
+      throw new Error(`Error: ${err.message}`);
     }
   };
 
-  // Search handle करने का function
   const handleSearch = async (username, isSecondUser = false) => {
     if (!username.trim()) {
-      setError('Username toh daal de bhai!');
+      setError('Please enter a username!');
       return;
     }
-
     setLoading(true);
     setError('');
-
     try {
       const data = await fetchGitHubData(username.trim());
-      
       if (isSecondUser) {
         setUserData2(data);
       } else {
@@ -97,7 +86,6 @@ const GitAnalyzer = () => {
     }
   };
 
-  // Language data को chart ke liye format करते हैं
   const formatLanguageData = (languageStats) => {
     return Object.entries(languageStats)
       .map(([name, value]) => ({ name, value }))
@@ -105,17 +93,14 @@ const GitAnalyzer = () => {
       .slice(0, 8);
   };
 
-  // Activity data format करना
   const formatActivityData = (activityPattern) => {
     return Object.entries(activityPattern)
       .map(([year, repos]) => ({ year: parseInt(year), repos }))
       .sort((a, b) => a.year - b.year);
   };
 
-  // Comparison के लिए radar chart data
   const getRadarData = () => {
     if (!userData1 || !userData2) return [];
-
     const metrics = [
       { subject: 'Repositories', user1: userData1.stats.totalRepos, user2: userData2.stats.totalRepos },
       { subject: 'Stars', user1: userData1.stats.totalStars, user2: userData2.stats.totalStars },
@@ -123,8 +108,6 @@ const GitAnalyzer = () => {
       { subject: 'Followers', user1: userData1.userInfo.followers, user2: userData2.userInfo.followers },
       { subject: 'Following', user1: userData1.userInfo.following, user2: userData2.userInfo.following },
     ];
-
-    // Normalize करते हैं values को 0-100 scale पर
     return metrics.map(metric => {
       const maxVal = Math.max(metric.user1, metric.user2) || 1;
       return {
@@ -137,228 +120,201 @@ const GitAnalyzer = () => {
     });
   };
 
-  // Stats card component - यह reusable है
-  const StatsCard = ({ icon: Icon, title, value, color = 'blue' }) => (
-    <div className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-${color}-500 hover:shadow-lg transition-shadow`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-        </div>
-        <Icon className={`w-8 h-8 text-${color}-500`} />
+  const StatsCard = ({ icon: Icon, title, value }) => (
+    <div style={{ borderLeft: '4px solid #444', background: '#222', color: '#eee', borderRadius: 4, padding: 8, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+      <div>
+        <div>{title}</div>
+        <div style={{ fontWeight: 'bold', fontSize: 16 }}>{value}</div>
       </div>
+      <Icon size={22} color="#8884d8" />
     </div>
   );
 
-  // User profile card
   const UserProfileCard = ({ userData, title }) => {
     if (!userData) return null;
-
     const { userInfo, stats } = userData;
-    
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div className="flex items-center space-x-4 mb-4">
-          <img 
-            src={userInfo.avatar_url} 
+      <div style={{ background: '#181818', color: '#eee', borderRadius: 4, padding: 12, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <img
+            src={userInfo.avatar_url}
             alt={userInfo.login}
-            className="w-16 h-16 rounded-full border-4 border-blue-500"
+            style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #8884d8', marginRight: 8 }}
           />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-            <p className="text-lg font-semibold text-blue-600">@{userInfo.login}</p>
-            {userInfo.name && <p className="text-gray-600">{userInfo.name}</p>}
-            {userInfo.bio && <p className="text-sm text-gray-500 mt-1">{userInfo.bio}</p>}
+            <div style={{ fontWeight: 'bold' }}>{title}</div>
+            <div style={{ color: '#8884d8' }}>@{userInfo.login}</div>
+            {userInfo.name && <div style={{ fontSize: 12 }}>{userInfo.name}</div>}
+            {userInfo.bio && <div style={{ fontSize: 11, color: '#aaa' }}>{userInfo.bio}</div>}
           </div>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatsCard icon={Code} title="Repositories" value={stats.totalRepos} color="blue" />
-          <StatsCard icon={Star} title="Total Stars" value={stats.totalStars} color="yellow" />
-          <StatsCard icon={GitBranch} title="Total Forks" value={stats.totalForks} color="green" />
-          <StatsCard icon={Users} title="Followers" value={userInfo.followers} color="purple" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          <StatsCard icon={Code} title="Repos" value={stats.totalRepos} />
+          <StatsCard icon={Star} title="Stars" value={stats.totalStars} />
+          <StatsCard icon={GitBranch} title="Forks" value={stats.totalForks} />
+          <StatsCard icon={Users} title="Followers" value={userInfo.followers} />
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header Section - यहाँ title और search है */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-            <Activity className="w-8 h-8 text-blue-600" />
-            GitHub Analyzer
+    <div style={{ background: '#111', color: '#eee', minHeight: '100vh', fontFamily: 'sans-serif', fontSize: 14 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 12 }}>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Activity size={28} color="#8884d8" />
+            GitHub Analyzer 
           </h1>
-          <p className="text-gray-600">Analyze and compare GitHub profiles with detailed insights</p>
+          <div style={{ color: '#aaa', fontSize: 13 }}>Check your or anyone's GitHub stats here!</div>
         </div>
-
-        {/* Search Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Search Users</h2>
-            <div className="flex items-center space-x-2">
+        <div style={{ background: '#181818', borderRadius: 4, padding: 12, marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontWeight: 'bold', fontSize: 15 }}>User Search</div>
+            <div>
               <input
                 type="checkbox"
                 id="compareMode"
                 checked={compareMode}
                 onChange={(e) => setCompareMode(e.target.checked)}
-                className="rounded"
+                style={{ marginRight: 4 }}
               />
-              <label htmlFor="compareMode" className="text-sm font-medium text-gray-700">
-                Compare Mode
-              </label>
+              <label htmlFor="compareMode" style={{ fontSize: 12 }}>Compare users?</label>
             </div>
           </div>
-
-          <div className={`grid ${compareMode ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'} gap-4`}>
-            {/* First User Search */}
-            <div className="flex space-x-2">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, display: 'flex', gap: 4 }}>
               <input
                 type="text"
                 placeholder="Enter GitHub username..."
                 value={user1}
                 onChange={(e) => setUser1(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch(user1)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch(user1)}
+                style={{ flex: 1, padding: 6, borderRadius: 4, border: '1px solid #333', background: '#222', color: '#eee' }}
               />
               <button
                 onClick={() => handleSearch(user1)}
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                style={{ padding: '6px 12px', borderRadius: 4, background: '#8884d8', color: '#fff', border: 'none', fontSize: 12 }}
               >
-                <Search className="w-4 h-4" />
+                <Search size={16} style={{ verticalAlign: 'middle', marginRight: 2 }} />
                 {loading ? 'Loading...' : 'Search'}
               </button>
             </div>
-
-            {/* Second User Search - only show in compare mode */}
             {compareMode && (
-              <div className="flex space-x-2">
+              <div style={{ flex: 1, display: 'flex', gap: 4 }}>
                 <input
                   type="text"
-                  placeholder="Enter second username for comparison..."
+                  placeholder="Enter another username..."
                   value={user2}
                   onChange={(e) => setUser2(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch(user2, true)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch(user2, true)}
+                  style={{ flex: 1, padding: 6, borderRadius: 4, border: '1px solid #333', background: '#222', color: '#eee' }}
                 />
                 <button
                   onClick={() => handleSearch(user2, true)}
                   disabled={loading}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  style={{ padding: '6px 12px', borderRadius: 4, background: '#82ca9d', color: '#222', border: 'none', fontSize: 12 }}
                 >
-                  <Search className="w-4 h-4" />
+                  <Search size={16} style={{ verticalAlign: 'middle', marginRight: 2 }} />
                   Compare
                 </button>
               </div>
             )}
           </div>
-
           {error && (
-            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
+            <div style={{ marginTop: 8, padding: 6, background: '#400', color: '#faa', borderRadius: 4, fontSize: 12 }}>{error}</div>
           )}
         </div>
-
-        {/* Results Section */}
         {(userData1 || userData2) && (
           <div>
-            {/* Tab Navigation */}
-            <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow-md">
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
               {['overview', 'languages', 'activity', 'repositories'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === tab
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  style={{
+                    flex: 1,
+                    padding: '6px 0',
+                    borderRadius: 4,
+                    background: activeTab === tab ? '#8884d8' : '#222',
+                    color: activeTab === tab ? '#fff' : '#aaa',
+                    border: 'none',
+                    fontWeight: activeTab === tab ? 'bold' : 'normal',
+                    fontSize: 13
+                  }}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               ))}
             </div>
-
-            {/* User Profile Cards */}
-            <div className={`grid ${compareMode && userData2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-6 mb-8`}>
-              {userData1 && <UserProfileCard userData={userData1} title="User 1" />}
-              {compareMode && userData2 && <UserProfileCard userData={userData2} title="User 2" />}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {userData1 && <div style={{ flex: 1 }}><UserProfileCard userData={userData1} title="User 1" /></div>}
+              {compareMode && userData2 && <div style={{ flex: 1 }}><UserProfileCard userData={userData2} title="User 2" /></div>}
             </div>
-
-            {/* Tab Content */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
-                {/* Comparison Radar Chart - only show when comparing */}
+              <div>
                 {compareMode && userData1 && userData2 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      Head-to-Head Comparison
-                    </h3>
-                    <ResponsiveContainer width="100%" height={400}>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, marginBottom: 10 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Trophy size={16} color="#ffc658" />
+                      User Comparison
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
                       <RadarChart data={getRadarData()}>
                         <PolarGrid />
                         <PolarAngleAxis dataKey="subject" />
                         <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                        <Radar name={userData1.userInfo.login} dataKey="user1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                        <Radar name={userData2.userInfo.login} dataKey="user2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
+                        <Radar name={userData1.userInfo.login} dataKey="user1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.5} />
+                        <Radar name={userData2.userInfo.login} dataKey="user2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.5} />
                         <Legend />
                         <Tooltip formatter={(value, name, props) => [props.payload[`raw${name.slice(-1)}`], name.slice(0, -1)]} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
-
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div style={{ display: 'flex', gap: 8 }}>
                   {userData1 && (
                     <>
-                      <div className="bg-white rounded-lg shadow-md p-4 text-center">
-                        <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-gray-900">{userData1.stats.totalStars}</p>
-                        <p className="text-sm text-gray-600">Total Stars Earned</p>
+                      <div style={{ background: '#222', borderRadius: 4, padding: 10, textAlign: 'center', flex: 1 }}>
+                        <TrendingUp size={20} color="#8884d8" />
+                        <div style={{ fontWeight: 'bold' }}>{userData1.stats.totalStars}</div>
+                        <div style={{ fontSize: 12 }}>Stars</div>
                       </div>
-                      <div className="bg-white rounded-lg shadow-md p-4 text-center">
-                        <GitBranch className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-gray-900">{userData1.stats.totalForks}</p>
-                        <p className="text-sm text-gray-600">Total Forks</p>
+                      <div style={{ background: '#222', borderRadius: 4, padding: 10, textAlign: 'center', flex: 1 }}>
+                        <GitBranch size={20} color="#82ca9d" />
+                        <div style={{ fontWeight: 'bold' }}>{userData1.stats.totalForks}</div>
+                        <div style={{ fontSize: 12 }}>Forks</div>
                       </div>
-                      <div className="bg-white rounded-lg shadow-md p-4 text-center">
-                        <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-gray-900">{userData1.stats.totalWatchers}</p>
-                        <p className="text-sm text-gray-600">Total Watchers</p>
+                      <div style={{ background: '#222', borderRadius: 4, padding: 10, textAlign: 'center', flex: 1 }}>
+                        <Eye size={20} color="#d084d0" />
+                        <div style={{ fontWeight: 'bold' }}>{userData1.stats.totalWatchers}</div>
+                        <div style={{ fontSize: 12 }}>Watchers</div>
                       </div>
-                      <div className="bg-white rounded-lg shadow-md p-4 text-center">
-                        <Calendar className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div style={{ background: '#222', borderRadius: 4, padding: 10, textAlign: 'center', flex: 1 }}>
+                        <Calendar size={20} color="#ffc658" />
+                        <div style={{ fontWeight: 'bold' }}>
                           {new Date(userData1.userInfo.created_at).getFullYear()}
-                        </p>
-                        <p className="text-sm text-gray-600">Joined GitHub</p>
+                        </div>
+                        <div style={{ fontSize: 12 }}>Joined</div>
                       </div>
                     </>
                   )}
                 </div>
               </div>
             )}
-
             {activeTab === 'languages' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div style={{ display: 'flex', gap: 8 }}>
                 {userData1 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      {userData1.userInfo.login} - Programming Languages
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6 }}>{userData1.userInfo.login} - Languages</div>
+                    <ResponsiveContainer width="100%" height={160}>
                       <PieChart>
                         <Pie
                           data={formatLanguageData(userData1.stats.languageStats)}
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
+                          outerRadius={50}
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
@@ -371,19 +327,16 @@ const GitAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 )}
-
                 {compareMode && userData2 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      {userData2.userInfo.login} - Programming Languages
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6 }}>{userData2.userInfo.login} - Languages</div>
+                    <ResponsiveContainer width="100%" height={160}>
                       <PieChart>
                         <Pie
                           data={formatLanguageData(userData2.stats.languageStats)}
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
+                          outerRadius={50}
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
@@ -398,16 +351,15 @@ const GitAnalyzer = () => {
                 )}
               </div>
             )}
-
             {activeTab === 'activity' && (
-              <div className="space-y-6">
+              <div>
                 {userData1 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-blue-500" />
-                      Repository Creation Activity
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, marginBottom: 10 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Activity size={16} color="#8884d8" />
+                      Repo Activity
+                    </div>
+                    <ResponsiveContainer width="100%" height={140}>
                       <BarChart data={formatActivityData(userData1.stats.activityPattern)}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="year" />
@@ -418,13 +370,10 @@ const GitAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 )}
-
                 {compareMode && userData1 && userData2 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Activity Comparison Over Years
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Activity Comparison</div>
+                    <ResponsiveContainer width="100%" height={140}>
                       <LineChart
                         data={(() => {
                           const years = new Set([
@@ -451,44 +400,33 @@ const GitAnalyzer = () => {
                 )}
               </div>
             )}
-
             {activeTab === 'repositories' && (
-              <div className="space-y-6">
+              <div style={{ display: 'flex', gap: 8 }}>
                 {userData1 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      Top Repositories - {userData1.userInfo.login}
-                    </h3>
-                    <div className="space-y-3">
-                      {userData1.stats.topRepos.slice(0, 5).map((repo, index) => (
-                        <div key={repo.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-blue-600 hover:text-blue-800">
-                                <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                                  {repo.name}
-                                </a>
-                              </h4>
-                              {repo.description && (
-                                <p className="text-sm text-gray-600 mt-1">{repo.description}</p>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Star size={16} color="#ffc658" />
+                      Top Repos - {userData1.userInfo.login}
+                    </div>
+                    <div>
+                      {userData1.stats.topRepos.slice(0, 5).map((repo) => (
+                        <div key={repo.id} style={{ background: '#222', borderRadius: 4, padding: 8, marginBottom: 6 }}>
+                          <div>
+                            <a href={repo.html_url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold', color: '#8884d8', textDecoration: 'none' }}>
+                              {repo.name}
+                            </a>
+                            {repo.description && (
+                              <div style={{ fontSize: 12, color: '#aaa' }}>{repo.description}</div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, color: '#aaa' }}>
+                              {repo.language && (
+                                <span>
+                                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#8884d8', marginRight: 2 }}></span>
+                                  {repo.language}
+                                </span>
                               )}
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                {repo.language && (
-                                  <span className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                    {repo.language}
-                                  </span>
-                                )}
-                                <span className="flex items-center gap-1">
-                                  <Star className="w-3 h-3" />
-                                  {repo.stargazers_count}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <GitBranch className="w-3 h-3" />
-                                  {repo.forks_count}
-                                </span>
-                              </div>
+                              <span><Star size={12} /> {repo.stargazers_count}</span>
+                              <span><GitBranch size={12} /> {repo.forks_count}</span>
                             </div>
                           </div>
                         </div>
@@ -496,42 +434,31 @@ const GitAnalyzer = () => {
                     </div>
                   </div>
                 )}
-
                 {compareMode && userData2 && (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      Top Repositories - {userData2.userInfo.login}
-                    </h3>
-                    <div className="space-y-3">
-                      {userData2.stats.topRepos.slice(0, 5).map((repo, index) => (
-                        <div key={repo.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-green-600 hover:text-green-800">
-                                <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                                  {repo.name}
-                                </a>
-                              </h4>
-                              {repo.description && (
-                                <p className="text-sm text-gray-600 mt-1">{repo.description}</p>
+                  <div style={{ background: '#181818', borderRadius: 4, padding: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Star size={16} color="#ffc658" />
+                      Top Repos - {userData2.userInfo.login}
+                    </div>
+                    <div>
+                      {userData2.stats.topRepos.slice(0, 5).map((repo) => (
+                        <div key={repo.id} style={{ background: '#222', borderRadius: 4, padding: 8, marginBottom: 6 }}>
+                          <div>
+                            <a href={repo.html_url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold', color: '#82ca9d', textDecoration: 'none' }}>
+                              {repo.name}
+                            </a>
+                            {repo.description && (
+                              <div style={{ fontSize: 12, color: '#aaa' }}>{repo.description}</div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, color: '#aaa' }}>
+                              {repo.language && (
+                                <span>
+                                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#82ca9d', marginRight: 2 }}></span>
+                                  {repo.language}
+                                </span>
                               )}
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                {repo.language && (
-                                  <span className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                    {repo.language}
-                                  </span>
-                                )}
-                                <span className="flex items-center gap-1">
-                                  <Star className="w-3 h-3" />
-                                  {repo.stargazers_count}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <GitBranch className="w-3 h-3" />
-                                  {repo.forks_count}
-                                </span>
-                              </div>
+                              <span><Star size={12} /> {repo.stargazers_count}</span>
+                              <span><GitBranch size={12} /> {repo.forks_count}</span>
                             </div>
                           </div>
                         </div>
@@ -543,11 +470,9 @@ const GitAnalyzer = () => {
             )}
           </div>
         )}
-
-        {/* Footer */}
-        <div className="text-center mt-12 text-gray-500">
-          <p>Made with ❤️ for analyzing GitHub profiles</p>
-          <p className="text-sm">Data fetched from GitHub API</p>
+        <div style={{ textAlign: 'center', marginTop: 32, fontSize: 11, color: '#666' }}>
+         
+          <div>Data comes from GitHub API. Koi galti hoo toh maaf kar dena 😭</div>
         </div>
       </div>
     </div>
