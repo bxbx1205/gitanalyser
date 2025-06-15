@@ -1,4 +1,4 @@
-// src/components/LanguageChart.jsx
+
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#8dd1e1", "#d0ed57", "#a4de6c"];

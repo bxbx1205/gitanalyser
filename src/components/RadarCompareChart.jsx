@@ -1,4 +1,3 @@
-// src/components/RadarCompareChart.jsx
 import {
   Radar,
   RadarChart,

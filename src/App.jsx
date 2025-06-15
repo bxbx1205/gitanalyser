@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search,
   Trophy,
   TrendingUp,
   GitBranch,
   Eye,
   Calendar,
-  Star,
-  Activity,
 } from "lucide-react";
 import UserForm from "./components/UserForm";
 import TabBar from "./components/TabBar";
@@ -28,7 +25,6 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Clear user2 data when compareMode is toggled off
   useEffect(() => {
     if (!compareMode) {
       setUserData2(null);
@@ -127,7 +123,6 @@ const App = () => {
                   </div>
                 )}
 
-                {/* Show only user1 stats if not comparing */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
                   <div className="bg-gray-800 rounded p-4">
                     <TrendingUp className="mx-auto text-indigo-400" />

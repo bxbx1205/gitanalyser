@@ -1,4 +1,3 @@
-// src/components/ActivityChart.jsx
 import {
   BarChart,
   Bar,
